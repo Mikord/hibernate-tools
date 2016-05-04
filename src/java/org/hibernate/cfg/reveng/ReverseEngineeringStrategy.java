@@ -197,5 +197,8 @@ public interface ReverseEngineeringStrategy {
 
 	public AssociationInfo foreignKeyToAssociationInfo(ForeignKey foreignKey);
 	public AssociationInfo foreignKeyToInverseAssociationInfo(ForeignKey foreignKey);
-		
+
+	boolean markColumnsInFkAsProcessed();
+
+	boolean isColumnMutable(Table table, Column column);
 }

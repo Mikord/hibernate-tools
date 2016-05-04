@@ -73,13 +73,13 @@ public class JDBCBinder {
 	private static final Logger log = LoggerFactory.getLogger(JDBCBinder.class);
 
 	private final MetadataBuildingContext mdbc;
-	
+
 	private final InFlightMetadataCollector metadataCollector;
-	
+
 	private Metadata metadata;
 
 	private ReverseEngineeringStrategy revengStrategy;
-	
+
 	private final boolean preferBasicCompositeIds;
 	private final ServiceRegistry serviceRegistry;
 	private final String defaultCatalog;
@@ -170,7 +170,7 @@ public class JDBCBinder {
 				continue;
 			}
 
-	    	
+
 			RootClass rc = new RootClass(mdbc);
 			TableIdentifier tableIdentifier = TableIdentifier.create(table);
 			String className = revengStrategy.tableToClassName( tableIdentifier );
@@ -184,9 +184,9 @@ public class JDBCBinder {
 			rc.setMetaAttributes(
 					BinderUtils.safeMap(
 							RevEngUtils.getTableToMetaAttributesInRevengStrategy(
-									revengStrategy, 
-									table, 
-									defaultCatalog, 
+									revengStrategy,
+									table,
+									defaultCatalog,
 									defaultSchema)));
 
 
@@ -289,18 +289,18 @@ public class JDBCBinder {
         if(inverseProperty) {
             propertyName = revengStrategy.foreignKeyToInverseEntityName(
         		fk.getName(),
-                TableIdentifier.create(fk.getReferencedTable()), 
-                fk.getReferencedColumns(), 
-                TableIdentifier.create(targetTable), 
-                fk.getColumns(), 
+                TableIdentifier.create(fk.getReferencedTable()),
+                fk.getReferencedColumns(),
+                TableIdentifier.create(targetTable),
+                fk.getColumns(),
                 isUnique);
         } else {
             propertyName = revengStrategy.foreignKeyToEntityName(
         		fk.getName(),
-                TableIdentifier.create(fk.getReferencedTable()), 
-                fk.getReferencedColumns(), 
-                TableIdentifier.create(targetTable), 
-                fk.getColumns(), 
+                TableIdentifier.create(fk.getReferencedTable()),
+                fk.getReferencedColumns(),
+                TableIdentifier.create(targetTable),
+                fk.getColumns(),
                 isUnique);
         }
 
@@ -309,7 +309,9 @@ public class JDBCBinder {
             Column fkcolumn = (Column) columns.next();
             checkColumn(fkcolumn);
             value.addColumn(fkcolumn);
-            processedColumns.add(fkcolumn);
+            if (inverseProperty || revengStrategy.markColumnsInFkAsProcessed()) {
+                processedColumns.add(fkcolumn);
+            }
         }
 
         value.setFetchMode(FetchMode.SELECT);
@@ -342,7 +344,9 @@ public class JDBCBinder {
 			Column fkcolumn = (Column) columns.next();
             checkColumn(fkcolumn);
             value.addColumn(fkcolumn);
-            processedColumns.add(fkcolumn);
+			if (revengStrategy.markColumnsInFkAsProcessed()) {
+				processedColumns.add(fkcolumn);
+			}
 		}
         value.setFetchMode(FetchMode.SELECT);
 
@@ -384,15 +388,15 @@ public class JDBCBinder {
         }
 
         return PropertyBinder.makeProperty(
-        		table, 
+        		table,
         		defaultCatalog,
         		defaultSchema,
-        		propertyName, 
-        		value, 
-        		insert, 
-        		update, 
-        		value.getFetchMode()!=FetchMode.JOIN, 
-        		cascade, 
+        		propertyName,
+        		value,
+        		insert,
+        		update,
+        		value.getFetchMode()!=FetchMode.JOIN,
+        		cascade,
         		null,
         		revengStrategy);
 
@@ -432,15 +436,15 @@ public class JDBCBinder {
         }
 
         return PropertyBinder.makeProperty(
-        		table, 
+        		table,
         		defaultCatalog,
         		defaultSchema,
-        		propertyName, 
-        		value, 
-        		insert, 
-        		update, 
-        		value.getFetchMode()!=FetchMode.JOIN, 
-        		cascade, 
+        		propertyName,
+        		value,
+        		insert,
+        		update,
+        		value.getFetchMode()!=FetchMode.JOIN,
+        		cascade,
         		null,
         		revengStrategy);
 	}
@@ -688,15 +692,15 @@ public class JDBCBinder {
 		}
 
 		Property property = PropertyBinder.makeProperty(
-				table, 
+				table,
 				defaultCatalog,
 				defaultSchema,
-				BinderUtils.makeUnique(rc,idPropertyname), 
-				id, 
-				true, 
-				true, 
-				false, 
-				null, 
+				BinderUtils.makeUnique(rc,idPropertyname),
+				id,
+				true,
+				true,
+				false,
+				null,
 				null,
 				revengStrategy);
 		rc.setIdentifierProperty(property);
@@ -769,12 +773,12 @@ public class JDBCBinder {
 			if ( !processedColumns.contains(column) ) {
 				checkColumn(column);
 
-				String propertyName = 
+				String propertyName =
 						RevEngUtils.getColumnToPropertyNameInRevengStrategy(
-								revengStrategy, 
-								table, 
-								defaultCatalog, 
-								defaultSchema, 
+								revengStrategy,
+								table,
+								defaultCatalog,
+								defaultSchema,
 								column.getName());
 
 				Property property = bindBasicProperty(
@@ -831,16 +835,17 @@ public class JDBCBinder {
 
 	private Property bindBasicProperty(String propertyName, Table table, Column column, Set<Column> processedColumns, Mapping mapping) {
 		SimpleValue value = bindColumnToSimpleValue( table, column, mapping, false );
+        boolean mutable = revengStrategy.isColumnMutable(table, column);
 		return PropertyBinder.makeProperty(
-				table, 
+				table,
 				defaultCatalog,
 				defaultSchema,
-				propertyName, 
-				value, 
-				true, 
-				true, 
-				false, 
-				null, 
+				propertyName,
+				value,
+				mutable,
+				mutable,
+				false,
+				null,
 				null,
 				revengStrategy);
 	}
@@ -882,10 +887,10 @@ public class JDBCBinder {
 		// TODO: this method mutates the column if the types does not match...not good.
 		// maybe we should copy the column instead before calling this method.
 		Integer sqlTypeCode = column.getSqlTypeCode();
-		String location = 
-				"Table: " + 
-				TableNameQualifier.qualify(table.getCatalog(), table.getSchema(), table.getQuotedName() ) + 
-				" column: " + 
+		String location =
+				"Table: " +
+				TableNameQualifier.qualify(table.getCatalog(), table.getSchema(), table.getQuotedName() ) +
+				" column: " +
 				column.getQuotedName();
 		if(sqlTypeCode==null) {
 			throw new JDBCBinderException("sqltype is null for " + location);
