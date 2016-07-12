@@ -350,13 +350,38 @@ public class DefaultReverseEngineeringStrategy implements ReverseEngineeringStra
 	}
 
 	public AssociationInfo foreignKeyToAssociationInfo(ForeignKey foreignKey) {
-		return null;
+		DefaulAssociationInfo association = new DefaulAssociationInfo();
+		if (settings.makeColumnsInFkMutable()) {
+			association.setInsert(false);
+			association.setUpdate(false);
+		}
+		return association;
 	}
 
 	public AssociationInfo foreignKeyToInverseAssociationInfo(ForeignKey foreignKey) {
 		return null;
 	}
 
-	
-	
+	@Override
+	public boolean markColumnsInFkAsProcessed() {
+		return !settings.createPropertiesForColumnsInFk();
+	}
+
+	@Override
+	public boolean isColumnMutable(Table table, Column column) {
+		return !settings.createPropertiesForColumnsInFk() ||
+				settings.makeColumnsInFkMutable() ||
+				!isColumnInFk(table, column);
+	}
+
+	protected boolean isColumnInFk(Table table, Column column) {
+		Iterator fkIterator = table.getForeignKeyIterator();
+		while (fkIterator.hasNext()) {
+			ForeignKey fk = (ForeignKey) fkIterator.next();
+			if (fk.getColumns().contains(column)) {
+				return true;
+			}
+		}
+		return false;
+	}
 }

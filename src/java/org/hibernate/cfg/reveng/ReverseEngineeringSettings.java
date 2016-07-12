@@ -9,6 +9,8 @@ public class ReverseEngineeringSettings {
 	private boolean detectOptimisticLock = true;
 	private boolean createCollectionForForeignKey = true;
 	private boolean createManyToOneForForeignKey = true;
+	private boolean createPropertiesForColumnsInFk = false;
+	private boolean makeColumnsInFkMutable = false;
 	private boolean detectManyToMany = true;
 	private boolean detectOneToOne = true;
 
@@ -63,6 +65,20 @@ public class ReverseEngineeringSettings {
 			boolean createManyToOneForForeignKey) {
 		this.createManyToOneForForeignKey = createManyToOneForForeignKey;
 		return this;
+	}
+
+	public boolean createPropertiesForColumnsInFk() {
+		return createPropertiesForColumnsInFk;
+	}
+
+	public ReverseEngineeringSettings setCreatePropertiesForColumnsInFk(boolean createPropertiesForColumnsInFk, boolean makeColumnsInFkMutable) {
+		this.createPropertiesForColumnsInFk = createPropertiesForColumnsInFk;
+		this.makeColumnsInFkMutable = makeColumnsInFkMutable;
+		return this;
+	}
+
+	public boolean makeColumnsInFkMutable() {
+		return makeColumnsInFkMutable;
 	}
 
 	public ReverseEngineeringSettings setDetectManyToMany(boolean b) {

@@ -191,4 +191,14 @@ public class NoopReverseEngineeringStrategy implements ReverseEngineeringStrateg
 		// TODO Auto-generated method stub
 		return null;
 	}
+
+	@Override
+	public boolean markColumnsInFkAsProcessed() {
+		return true;
+	}
+
+	@Override
+	public boolean isColumnMutable(Table table, Column column) {
+		return true;
+	}
 }
